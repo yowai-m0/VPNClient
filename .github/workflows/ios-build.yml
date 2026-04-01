@@ -16,29 +16,44 @@ jobs:
       - name: Setup Xcode
         run: |
           sudo xcode-select -switch /Applications/Xcode_16.2.app
+          xcodebuild -version
+          swift --version
 
       - name: Build iOS app
         run: |
-          # Создаем временную папку
-          mkdir -p build
+          # Собираем для iOS
+          swift build -c release --triple arm64-apple-ios
 
-          # Компилируем Swift код
-          swift build -c release --arch arm64
+          # Находим собранный файл
+          echo "Looking for built binary..."
+          find .build -name "VPNClient" -type f 2>/dev/null || true
 
           # Создаем структуру приложения
           mkdir -p Payload/VPNClient.app
 
-          # Копируем исполняемый файл
-          cp .build/arm64-apple-ios/release/VPNClient Payload/VPNClient.app/
+          # Копируем исполняемый файл (пробуем разные пути)
+          if [ -f ".build/arm64-apple-ios/release/VPNClient" ]; then
+            cp .build/arm64-apple-ios/release/VPNClient Payload/VPNClient.app/
+          elif [ -f ".build/release/VPNClient" ]; then
+            cp .build/release/VPNClient Payload/VPNClient.app/
+          elif [ -f ".build/arm64-apple-ios/debug/VPNClient" ]; then
+            cp .build/arm64-apple-ios/debug/VPNClient Payload/VPNClient.app/
+          else
+            echo "ERROR: Cannot find built binary!"
+            ls -la .build/
+            ls -la .build/arm64-apple-ios/ 2>/dev/null || true
+            ls -la .build/release/ 2>/dev/null || true
+            exit 1
+          fi
 
-          # Создаем минимальный Info.plist
-          cat > Payload/VPNClient.app/Info.plist << EOF
+          # Создаем Info.plist
+          cat > Payload/VPNClient.app/Info.plist << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
               <key>CFBundleIdentifier</key>
-              <string>com.yowai-m0.vpnclient</string>
+              <string>com.yowaimo.vpnclient</string>
               <key>CFBundleName</key>
               <string>VPNClient</string>
               <key>CFBundleDisplayName</key>
@@ -65,8 +80,14 @@ jobs:
           </plist>
           EOF
 
+          # Делаем исполняемый файл... исполняемым
+          chmod +x Payload/VPNClient.app/VPNClient
+
           # Создаем IPA
           zip -r VPNClient.ipa Payload/
+
+          echo "✅ IPA created successfully!"
+          ls -la VPNClient.ipa
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
