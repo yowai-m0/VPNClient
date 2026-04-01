@@ -1,4 +1,5 @@
 // swift-tools-version:5.7
+
 import PackageDescription
 
 let package = Package(
@@ -6,14 +7,8 @@ let package = Package(
     platforms: [
         .iOS(.v15)
     ],
-    products: [
-        .library(
-            name: "VPNClient",
-            targets: ["VPNClient"]
-        ),
-    ],
     targets: [
-        .target(
+        .executableTarget(
             name: "VPNClient",
             path: "Sources/VPNClient"
         )
