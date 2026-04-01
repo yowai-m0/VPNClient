@@ -15,7 +15,7 @@ public class VPNManager {
     public func configureVPN(serverAddress: String, username: String, password: String) {
         vpnManager.loadFromPreferences { error in
             if let error = error {
-                print("Ошибка загрузки конфигурации: \(error.localizedDescription)")
+                print("Error loading config: \(error.localizedDescription)")
                 return
             }
 
@@ -33,9 +33,9 @@ public class VPNManager {
 
             self.vpnManager.saveToPreferences { error in
                 if let error = error {
-                    print("Ошибка сохранения: \(error.localizedDescription)")
+                    print("Error saving: \(error.localizedDescription)")
                 } else {
-                    print("VPN настроен успешно!")
+                    print("VPN configured successfully!")
                 }
             }
         }
@@ -44,35 +44,39 @@ public class VPNManager {
     public func startVPN() {
         vpnManager.loadFromPreferences { error in
             if let error = error {
-                print("Ошибка: \(error.localizedDescription)")
+                print("Error: \(error.localizedDescription)")
                 return
             }
             do {
                 try self.vpnManager.connection.startVPNTunnel()
-                print("VPN запускается...")
+                print("VPN starting...")
             } catch {
-                print("Не удалось запустить VPN: \(error.localizedDescription)")
+                print("Failed to start VPN: \(error.localizedDescription)")
             }
         }
     }
 
     public func stopVPN() {
         vpnManager.connection.stopVPNTunnel()
-        print("VPN остановлен")
+        print("VPN stopped")
     }
 
     public func getStatus() -> String {
         switch vpnManager.connection.status {
         case .disconnected:
-            return "Отключен"
+            return "Disconnected"
         case .connecting:
-            return "Подключение..."
+            return "Connecting..."
         case .connected:
-            return "Подключен"
+            return "Connected"
         case .disconnecting:
-            return "Отключение..."
+            return "Disconnecting..."
+        case .invalid:
+            return "Invalid"
+        case .reasserting:
+            return "Reasserting"
         @unknown default:
-            return "Неизвестно"
+            return "Unknown"
         }
     }
 
@@ -89,10 +93,10 @@ public class VPNManager {
         let status = SecItemAdd(query as CFDictionary, nil)
 
         if status == errSecSuccess {
-            print("Пароль сохранен в Keychain")
+            print("Password saved to Keychain")
             return passwordData
         } else {
-            print("Ошибка сохранения пароля: \(status)")
+            print("Error saving password: \(status)")
             return nil
         }
     }
