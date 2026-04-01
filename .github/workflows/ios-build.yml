@@ -2,7 +2,7 @@ name: Build iOS App
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -13,19 +13,63 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build Swift Package
+      - name: Setup Xcode
         run: |
-          swift build -c release
-          echo "✅ Build completed successfully!"
+          sudo xcode-select -switch /Applications/Xcode_16.2.app
 
-      - name: Create artifact
+      - name: Build iOS app
         run: |
-          mkdir -p Payload
-          echo "VPN Client v1.0" > Payload/README.txt
-          zip -r VPNClient.zip Payload/
+          # Создаем временную папку
+          mkdir -p build
 
-      - name: Upload artifact
+          # Компилируем Swift код
+          swift build -c release --arch arm64
+
+          # Создаем структуру приложения
+          mkdir -p Payload/VPNClient.app
+
+          # Копируем исполняемый файл
+          cp .build/arm64-apple-ios/release/VPNClient Payload/VPNClient.app/
+
+          # Создаем минимальный Info.plist
+          cat > Payload/VPNClient.app/Info.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleIdentifier</key>
+              <string>com.yowai-m0.vpnclient</string>
+              <key>CFBundleName</key>
+              <string>VPNClient</string>
+              <key>CFBundleDisplayName</key>
+              <string>VPN Client</string>
+              <key>CFBundleVersion</key>
+              <string>1.0</string>
+              <key>CFBundleShortVersionString</key>
+              <string>1.0</string>
+              <key>CFBundleExecutable</key>
+              <string>VPNClient</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleSupportedPlatforms</key>
+              <array>
+                  <string>iPhoneOS</string>
+              </array>
+              <key>MinimumOSVersion</key>
+              <string>15.0</string>
+              <key>UIRequiredDeviceCapabilities</key>
+              <array>
+                  <string>arm64</string>
+              </array>
+          </dict>
+          </plist>
+          EOF
+
+          # Создаем IPA
+          zip -r VPNClient.ipa Payload/
+
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: VPNClient
-          path: VPNClient.zip
+          path: VPNClient.ipa
